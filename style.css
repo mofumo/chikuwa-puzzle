@@ -1,11 +1,48 @@
-
 body {
-    margin: 0;
-    padding: 0;
-    background-color: #f0f0f0;
+  font-family: "Hiragino Kaku Gothic ProN", sans-serif;
+  text-align: center;
+  background-color: #fff7ee;
 }
-canvas {
-    display: block;
-    margin: 0 auto;
-    background-color: #ffffff;
+
+h1 {
+  font-size: 2em;
+  margin-top: 20px;
+}
+
+#scoreboard {
+  margin: 10px 0;
+  font-size: 1.2em;
+}
+
+#board {
+  display: grid;
+  grid-template-columns: repeat(8, 60px);
+  grid-template-rows: repeat(8, 60px);
+  gap: 4px;
+  justify-content: center;
+  margin: 20px auto;
+}
+
+.cell {
+  width: 60px;
+  height: 60px;
+  background-color: #ffccdd;
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 10px;
+  user-select: none;
+  transition: transform 0.2s ease-in-out;
+}
+
+.cell.pop {
+  animation: pop 0.3s ease;
+}
+
+@keyframes pop {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.7; }
+  100% { transform: scale(0.8); opacity: 0; }
 }
