@@ -105,13 +105,48 @@ function findMatches() {
 }
 
 function checkMatches() {
-    const matches = findMatches();
-    if (matched.length >= 3) {
-  matched.forEach(el => {
-    const [r, c] = el;
-    board[r][c] = null;
-  });
-  updateScore(matched.length * 10);  // ★ マッチ数 × 10点
+  let matched = [];
+
+  // 横のマッチ判定
+  for (let row = 0; row < boardSize; row++) {
+    for (let col = 0; col < boardSize - 2; col++) {
+      const dog = board[row][col];
+      if (
+        dog &&
+        dog === board[row][col + 1] &&
+        dog === board[row][col + 2]
+      ) {
+        matched.push([row, col], [row, col + 1], [row, col + 2]);
+      }
+    }
+  }
+
+  // 縦のマッチ判定
+  for (let col = 0; col < boardSize; col++) {
+    for (let row = 0; row < boardSize - 2; row++) {
+      const dog = board[row][col];
+      if (
+        dog &&
+        dog === board[row + 1][col] &&
+        dog === board[row + 2][col]
+      ) {
+        matched.push([row, col], [row + 1, col], [row + 2, col]);
+      }
+    }
+  }
+
+  if (matched.length >= 3) {
+    matched.forEach(([r, c]) => {
+      board[r][c] = null;
+    });
+    updateScore(matched.length * 10);
+    renderBoard();
+    setTimeout(() => {
+      dropDogs();
+      fillEmptyTiles();
+      setTimeout(checkMatches, 100);
+    }, 200);
+  }
 }
     collapse();
     setTimeout(() => {
