@@ -6,24 +6,22 @@ body {
 }
 #board {
   display: grid;
-  grid-template-columns: repeat(8, 60px); /* ← 6から8に変更！ */
+  grid-template-columns: repeat(8, 60px); /* boardSize に対応 */
   gap: 4px;
 }
+
 .cell {
-  width: 48px;
-  height: 48px;
-  background: #ffffff;
-  border: 1px solid #ccc;
-}
-.cell.selected {
-  outline: 2px solid red;
-}
-.tile {
   width: 60px;
   height: 60px;
+  background-color: #fff3dc;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
 .dog-icon {
-  width: 100%;
-  height: auto;
+  width: 48px;
+  height: 48px;
   object-fit: contain;
 }
