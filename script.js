@@ -1,184 +1,157 @@
-
 const boardSize = 8;
-const board = [];
 const dogTypes = [
-    'dog_shih_tzu',
-    'dog_poodle',
-    'dog_chihuahua',
-    'dog_shiba',
-    'dog_schnauzer'
+  'dog_chihuahua',
+  'dog_poodle',
+  'dog_schnauzer',
+  'dog_shiba',
+  'dog_shih_tzu'
 ];
 
+let board = [];
+let firstSelected = null;
 let score = 0;
 
-function updateScore(points) {
-  score += points;
-  document.getElementById('score').textContent = `スコア：${score}`;
+const boardElement = document.getElementById('board');
+const scoreElement = document.getElementById('score');
+
+function createDogElement(type) {
+  const img = document.createElement('img');
+  img.src = `img/${type}.png`;
+  img.classList.add('dog');
+  img.dataset.type = type;
+  return img;
 }
 
-function createBoard() {
-    const boardElem = document.getElementById("board");
-    boardElem.innerHTML = "";
-    for (let row = 0; row < boardSize; row++) {
-        board[row] = [];
-        for (let col = 0; col < boardSize; col++) {
-            const type = dogTypes[Math.floor(Math.random() * dogTypes.length)];
-            board[row][col] = type;
-            const cell = createCell(row, col, type);
-            boardElem.appendChild(cell);
-        }
+function initBoard() {
+  boardElement.innerHTML = '';
+  board = [];
+
+  for (let i = 0; i < boardSize; i++) {
+    const row = [];
+    for (let j = 0; j < boardSize; j++) {
+      const type = dogTypes[Math.floor(Math.random() * dogTypes.length)];
+      const dog = createDogElement(type);
+      dog.dataset.row = i;
+      dog.dataset.col = j;
+      dog.addEventListener('click', handleDogClick);
+      boardElement.appendChild(dog);
+      row.push(dog);
     }
-    setTimeout(checkMatches, 100);
+    board.push(row);
+  }
+
+  score = 0;
+  updateScore();
+  checkMatches();
 }
 
-function createCell(row, col, type) {
-    const cell = document.createElement("div");
-    cell.className = "cell";
-    cell.dataset.row = row;
-    cell.dataset.col = col;
-    const img = document.createElement("img");
-    img.src = `img/${type}.png`;
-    img.alt = type;
-    cell.appendChild(img);
-    cell.addEventListener("click", () => handleClick(row, col));
-    return cell;
+function updateScore() {
+  scoreElement.textContent = `スコア：${score}`;
 }
 
-let firstClick = null;
+function handleDogClick(e) {
+  const clicked = e.target;
+  if (!firstSelected) {
+    firstSelected = clicked;
+    clicked.classList.add('selected');
+  } else {
+    const row1 = parseInt(firstSelected.dataset.row);
+    const col1 = parseInt(firstSelected.dataset.col);
+    const row2 = parseInt(clicked.dataset.row);
+    const col2 = parseInt(clicked.dataset.col);
 
-function handleClick(row, col) {
-    if (!firstClick) {
-        firstClick = { row, col };
+    const isAdjacent = Math.abs(row1 - row2) + Math.abs(col1 - col2) === 1;
+
+    if (isAdjacent) {
+      swapDogs(firstSelected, clicked);
+      setTimeout(() => {
+        if (!checkMatches()) {
+          swapDogs(firstSelected, clicked); // 戻す
+        }
+        firstSelected.classList.remove('selected');
+        firstSelected = null;
+      }, 100);
     } else {
-        const { row: r1, col: c1 } = firstClick;
-        if (Math.abs(r1 - row) + Math.abs(c1 - col) === 1) {
-            swap(r1, c1, row, col);
-            if (!checkImmediateMatch()) {
-                swap(r1, c1, row, col); // swap back
-            } else {
-                setTimeout(() => checkMatches(), 100);
-            }
-        }
-        firstClick = null;
+      firstSelected.classList.remove('selected');
+      firstSelected = null;
     }
-    renderBoard();
+  }
 }
 
-function swap(r1, c1, r2, c2) {
-    [board[r1][c1], board[r2][c2]] = [board[r2][c2], board[r1][c1]];
-}
+function swapDogs(dog1, dog2) {
+  const row1 = dog1.dataset.row;
+  const col1 = dog1.dataset.col;
+  const row2 = dog2.dataset.row;
+  const col2 = dog2.dataset.col;
 
-function checkImmediateMatch() {
-    return findMatches().length > 0;
-}
+  const temp = board[row1][col1];
+  board[row1][col1] = board[row2][col2];
+  board[row2][col2] = temp;
 
-function renderBoard() {
-    const boardElem = document.getElementById("board");
-    boardElem.innerHTML = "";
-    for (let row = 0; row < boardSize; row++) {
-        for (let col = 0; col < boardSize; col++) {
-            const cell = createCell(row, col, board[row][col]);
-            boardElem.appendChild(cell);
-        }
-    }
-}
+  board[row1][col1].dataset.row = row1;
+  board[row1][col1].dataset.col = col1;
+  board[row2][col2].dataset.row = row2;
+  board[row2][col2].dataset.col = col2;
 
-function findMatches() {
-    const matches = [];
-    for (let row = 0; row < boardSize; row++) {
-        for (let col = 0; col < boardSize - 2; col++) {
-            const type = board[row][col];
-            if (type && board[row][col + 1] === type && board[row][col + 2] === type) {
-                matches.push([row, col], [row, col + 1], [row, col + 2]);
-            }
-        }
-    }
-    for (let col = 0; col < boardSize; col++) {
-        for (let row = 0; row < boardSize - 2; row++) {
-            const type = board[row][col];
-            if (type && board[row + 1][col] === type && board[row + 2][col] === type) {
-                matches.push([row, col], [row + 1, col], [row + 2, col]);
-            }
-        }
-    }
-    return matches;
+  boardElement.innerHTML = '';
+  board.flat().forEach(dog => boardElement.appendChild(dog));
 }
 
 function checkMatches() {
   let matched = [];
 
-  // 横のマッチ判定
-  for (let row = 0; row < boardSize; row++) {
-    for (let col = 0; col < boardSize - 2; col++) {
-      const dog = board[row][col];
+  // 横方向
+  for (let i = 0; i < boardSize; i++) {
+    for (let j = 0; j < boardSize - 2; j++) {
+      const type = board[i][j].dataset.type;
       if (
-        dog &&
-        dog === board[row][col + 1] &&
-        dog === board[row][col + 2]
+        type === board[i][j + 1].dataset.type &&
+        type === board[i][j + 2].dataset.type
       ) {
-        matched.push([row, col], [row, col + 1], [row, col + 2]);
+        matched.push(board[i][j], board[i][j + 1], board[i][j + 2]);
       }
     }
   }
 
-  // 縦のマッチ判定
-  for (let col = 0; col < boardSize; col++) {
-    for (let row = 0; row < boardSize - 2; row++) {
-      const dog = board[row][col];
+  // 縦方向
+  for (let j = 0; j < boardSize; j++) {
+    for (let i = 0; i < boardSize - 2; i++) {
+      const type = board[i][j].dataset.type;
       if (
-        dog &&
-        dog === board[row + 1][col] &&
-        dog === board[row + 2][col]
+        type === board[i + 1][j].dataset.type &&
+        type === board[i + 2][j].dataset.type
       ) {
-        matched.push([row, col], [row + 1, col], [row + 2, col]);
+        matched.push(board[i][j], board[i + 1][j], board[i + 2][j]);
       }
     }
   }
 
-  if (matched.length >= 3) {
-    matched.forEach(([r, c]) => {
-      board[r][c] = null;
-    });
-    updateScore(matched.length * 10);
-    renderBoard();
-    setTimeout(() => {
-      dropDogs();
-      fillEmptyTiles();
-      setTimeout(checkMatches, 100);
-    }, 200);
-  }
+  if (matched.length === 0) return false;
+
+  matched = [...new Set(matched)];
+
+  matched.forEach(dog => {
+    const row = parseInt(dog.dataset.row);
+    const col = parseInt(dog.dataset.col);
+    const newType = dogTypes[Math.floor(Math.random() * dogTypes.length)];
+    const newDog = createDogElement(newType);
+    newDog.dataset.row = row;
+    newDog.dataset.col = col;
+    newDog.addEventListener('click', handleDogClick);
+    board[row][col] = newDog;
+  });
+
+  boardElement.innerHTML = '';
+  board.flat().forEach(dog => boardElement.appendChild(dog));
+
+  score += matched.length * 10;
+  updateScore();
+
+  setTimeout(checkMatches, 300);
+
+  return true;
 }
 
-    collapse();
-    setTimeout(() => {
-        refill();
-        renderBoard();
-        setTimeout(checkMatches, 200);
-    }, 200);
-}
+document.getElementById('resetButton').addEventListener('click', initBoard);
 
-function collapse() {
-    for (let col = 0; col < boardSize; col++) {
-        let pointer = boardSize - 1;
-        for (let row = boardSize - 1; row >= 0; row--) {
-            if (board[row][col]) {
-                board[pointer][col] = board[row][col];
-                if (pointer !== row) board[row][col] = null;
-                pointer--;
-            }
-        }
-    }
-}
-
-function refill() {
-    for (let row = 0; row < boardSize; row++) {
-        for (let col = 0; col < boardSize; col++) {
-            if (!board[row][col]) {
-                const type = dogTypes[Math.floor(Math.random() * dogTypes.length)];
-                board[row][col] = type;
-            }
-        }
-    }
-}
-
-createBoard();
+window.onload = initBoard;
