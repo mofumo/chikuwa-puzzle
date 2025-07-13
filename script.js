@@ -148,6 +148,7 @@ function checkMatches() {
     }, 200);
   }
 }
+
     collapse();
     setTimeout(() => {
         refill();
