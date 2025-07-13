@@ -1,4 +1,4 @@
-const boardSize = 6;
+const boardSize = 8;
 const dogTypes = [
   'dog_shih_tzu',
   'dog_poodle',
