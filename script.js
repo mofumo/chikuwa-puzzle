@@ -1,5 +1,4 @@
-const numRows = 8;
-const numCols = 8;
+const boardSize = 6;
 const dogTypes = [
   'dog_shih_tzu',
   'dog_poodle',
@@ -7,30 +6,39 @@ const dogTypes = [
   'dog_shiba',
   'dog_schnauzer'
 ];
+
 let board = [];
-let firstSelected = null;
-let movesLeft = 30;
-let score = 0;
+let selected = null;
 
 function createBoard() {
   board = [];
-  const gameBoard = document.getElementById("game-board");
-  gameBoard.innerHTML = "";
-  for (let row = 0; row < numRows; row++) {
-    const rowElement = document.createElement("div");
-    rowElement.classList.add("row");
-    board[row] = [];
-    for (let col = 0; col < numCols; col++) {
-      const type = dogTypes[Math.floor(Math.random() * dogTypes.length)];
-      board[row][col] = type;
-      const cell = createCell(row, col, type);
-      rowElement.appendChild(cell);
+  for (let y = 0; y < boardSize; y++) {
+    let row = [];
+    for (let x = 0; x < boardSize; x++) {
+      row.push(dogTypes[Math.floor(Math.random() * dogTypes.length)]);
     }
-    gameBoard.appendChild(rowElement);
+    board.push(row);
   }
-  updateStatus();
-  setTimeout(checkAndRemoveMatches, 200);
 }
+
+function drawBoard() {
+  const boardDiv = document.getElementById("board");
+  boardDiv.innerHTML = "";
+  for (let y = 0; y < boardSize; y++) {
+    for (let x = 0; x < boardSize; x++) {
+      const div = document.createElement("div");
+      div.className = "tile";
+      const img = document.createElement("img");
+      img.src = `img/${board[y][x]}.png`;
+      img.alt = board[y][x];
+      img.className = "dog-icon";
+      div.appendChild(img);
+      div.addEventListener("click", () => handleClick(x, y));
+      boardDiv.appendChild(div);
+    }
+  }
+}
+
 
 function createCell(row, col, type) {
   const cell = document.createElement("div");
@@ -155,6 +163,14 @@ function updateStatus() {
   document.getElementById("score").textContent = score;
   document.getElementById("moves").textContent = movesLeft;
 }
+
+// 残りの関数（handleClick, checkMatches, removeMatches, dropTiles, fillTiles, etc.）はver1.5のままでOK
+function startGame() {
+  createBoard();
+  drawBoard();
+}
+
+window.onload = startGame;
 
 document.getElementById("start-button").addEventListener("click", createBoard);
 window.onload = () => {
