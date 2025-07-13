@@ -6,7 +6,6 @@ const dogTypes = [
   'dog_shiba',
   'dog_schnauzer'
 ];
-const boardSize = 8; // ← ボードサイズを8×8に変更
 
 let board = [];
 let selected = null;
