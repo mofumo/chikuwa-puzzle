@@ -3,8 +3,20 @@ const numMoves = 30;
 let movesLeft = numMoves;
 let score = 0;
 
-const emojis = ["🐶", "🐩", "🐕", "🦴", "🐾"];
-let board = [];
+const dogTypes = [
+  'dog_shih_tzu',
+  'dog_poodle',
+  'dog_chihuahua',
+  'dog_shiba',
+  'dog_schnauzer'
+];
+
+// 各セルに画像を設定
+const img = document.createElement("img");
+img.src = `img/${dogTypes[type]}.png`;
+img.alt = dogTypes[type];
+img.classList.add("dog-icon");
+cell.appendChild(img);
 
 function createBoard() {
   const boardDiv = document.getElementById("board");
