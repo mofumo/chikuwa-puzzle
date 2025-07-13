@@ -1,136 +1,162 @@
+const numRows = 8;
+const numCols = 8;
+const dogTypes = [
+  'dog_shih_tzu',
+  'dog_poodle',
+  'dog_chihuahua',
+  'dog_shiba',
+  'dog_schnauzer'
+];
+let board = [];
+let firstSelected = null;
+let movesLeft = 30;
+let score = 0;
 
-const dogTypes = ['dog_shih_tzu', 'dog_poodle', 'dog_chihuahua', 'dog_shiba', 'dog_schnauzer'];
-const boardSize = 8;
-let board = [], movesLeft = 30, score = 0;
-let firstCell = null;
-
-function getRandomType() {
-  return Math.floor(Math.random() * dogTypes.length);
+function createBoard() {
+  board = [];
+  const gameBoard = document.getElementById("game-board");
+  gameBoard.innerHTML = "";
+  for (let row = 0; row < numRows; row++) {
+    const rowElement = document.createElement("div");
+    rowElement.classList.add("row");
+    board[row] = [];
+    for (let col = 0; col < numCols; col++) {
+      const type = dogTypes[Math.floor(Math.random() * dogTypes.length)];
+      board[row][col] = type;
+      const cell = createCell(row, col, type);
+      rowElement.appendChild(cell);
+    }
+    gameBoard.appendChild(rowElement);
+  }
+  updateStatus();
+  setTimeout(checkAndRemoveMatches, 200);
 }
 
-function createCell(row, col) {
+function createCell(row, col, type) {
   const cell = document.createElement("div");
-  cell.className = "cell";
-  cell.dataset.row = row;
-  cell.dataset.col = col;
-  const type = getRandomType();
-  cell.dataset.type = type;
-
+  cell.classList.add("cell");
   const img = document.createElement("img");
-  img.src = `img/${dogTypes[type]}.png`;
-  img.className = "dog-icon";
+  img.src = "img/" + type + ".png";
+  img.classList.add("dog-icon");
   cell.appendChild(img);
-
-  cell.addEventListener("click", handleClick);
+  cell.addEventListener("click", () => selectCell(row, col));
   return cell;
 }
 
-function createBoard() {
-  const boardDiv = document.getElementById("board");
-  boardDiv.innerHTML = "";
-  board = [];
-  for (let r = 0; r < boardSize; r++) {
-    const rowArr = [];
-    for (let c = 0; c < boardSize; c++) {
-      const cell = createCell(r, c);
-      boardDiv.appendChild(cell);
-      rowArr.push(cell);
-    }
-    board.push(rowArr);
-  }
-  setTimeout(removeMatches, 100);
-}
-
-function handleClick(e) {
-  const cell = e.currentTarget;
-  if (!firstCell) {
-    firstCell = cell;
-    cell.classList.add("selected");
+function selectCell(row, col) {
+  if (movesLeft <= 0) return;
+  const cellElement = document.querySelector(`.row:nth-child(${row + 1}) .cell:nth-child(${col + 1})`);
+  if (!firstSelected) {
+    firstSelected = { row, col };
+    cellElement.classList.add("selected");
   } else {
-    if (firstCell === cell) {
-      cell.classList.remove("selected");
-      firstCell = null;
-      return;
+    const { row: r, col: c } = firstSelected;
+    if ((Math.abs(r - row) === 1 && c === col) || (Math.abs(c - col) === 1 && r === row)) {
+      swapCells(r, c, row, col);
+      firstSelected = null;
+      document.querySelectorAll(".cell").forEach(cell => cell.classList.remove("selected"));
+    } else {
+      document.querySelectorAll(".cell").forEach(cell => cell.classList.remove("selected"));
+      firstSelected = null;
     }
+  }
+}
 
-    const r1 = parseInt(firstCell.dataset.row), c1 = parseInt(firstCell.dataset.col);
-    const r2 = parseInt(cell.dataset.row), c2 = parseInt(cell.dataset.col);
+function swapCells(r1, c1, r2, c2) {
+  [board[r1][c1], board[r2][c2]] = [board[r2][c2], board[r1][c1]];
+  updateBoard();
+  movesLeft--;
+  updateStatus();
+  setTimeout(checkAndRemoveMatches, 200);
+}
 
-    if ((Math.abs(r1 - r2) === 1 && c1 === c2) || (Math.abs(c1 - c2) === 1 && r1 === r2)) {
-      swapCells(firstCell, cell);
-      if (checkAnyMatches()) {
-        movesLeft--;
-        document.getElementById("moves").textContent = movesLeft;
-        setTimeout(() => {
-          removeMatches();
-          if (movesLeft <= 0) alert("ゲーム終了！");
-        }, 100);
-      } else {
-        swapCells(firstCell, cell);
-      }
+function updateBoard() {
+  const gameBoard = document.getElementById("game-board");
+  for (let row = 0; row < numRows; row++) {
+    const rowElement = gameBoard.children[row];
+    for (let col = 0; col < numCols; col++) {
+      const cell = rowElement.children[col];
+      const img = cell.querySelector("img");
+      img.src = "img/" + board[row][col] + ".png";
     }
-
-    firstCell.classList.remove("selected");
-    firstCell = null;
   }
 }
 
-function swapCells(cell1, cell2) {
-  const tempType = cell1.dataset.type;
-  cell1.dataset.type = cell2.dataset.type;
-  cell2.dataset.type = tempType;
-
-  cell1.querySelector("img").src = `img/${dogTypes[cell1.dataset.type]}.png`;
-  cell2.querySelector("img").src = `img/${dogTypes[cell2.dataset.type]}.png`;
-}
-
-function checkAnyMatches() {
-  return findMatches().length > 0;
-}
-
-function findMatches() {
-  const matches = [];
-
-  for (let r = 0; r < boardSize; r++) {
-    for (let c = 0; c < boardSize - 2; c++) {
-      const t = board[r][c].dataset.type;
-      if (t === board[r][c + 1].dataset.type && t === board[r][c + 2].dataset.type) {
-        matches.push(board[r][c], board[r][c + 1], board[r][c + 2]);
+function checkAndRemoveMatches() {
+  let matched = Array.from({ length: numRows }, () => Array(numCols).fill(false));
+  // 横方向チェック
+  for (let row = 0; row < numRows; row++) {
+    for (let col = 0; col < numCols - 2; col++) {
+      const type = board[row][col];
+      if (type && type === board[row][col + 1] && type === board[row][col + 2]) {
+        matched[row][col] = matched[row][col + 1] = matched[row][col + 2] = true;
       }
     }
   }
-
-  for (let c = 0; c < boardSize; c++) {
-    for (let r = 0; r < boardSize - 2; r++) {
-      const t = board[r][c].dataset.type;
-      if (t === board[r + 1][c].dataset.type && t === board[r + 2][c].dataset.type) {
-        matches.push(board[r][c], board[r + 1][c], board[r + 2][c]);
+  // 縦方向チェック
+  for (let col = 0; col < numCols; col++) {
+    for (let row = 0; row < numRows - 2; row++) {
+      const type = board[row][col];
+      if (type && type === board[row + 1][col] && type === board[row + 2][col]) {
+        matched[row][col] = matched[row + 1][col] = matched[row + 2][col] = true;
       }
     }
   }
-
-  return matches;
+  let hasMatch = false;
+  for (let row = 0; row < numRows; row++) {
+    for (let col = 0; col < numCols; col++) {
+      if (matched[row][col]) {
+        board[row][col] = null;
+        score += 10;
+        hasMatch = true;
+      }
+    }
+  }
+  if (hasMatch) {
+    updateStatus();
+    setTimeout(() => {
+      collapseBoard();
+      refillBoard();
+      updateBoard();
+      setTimeout(checkAndRemoveMatches, 200);
+    }, 200);
+  } else if (movesLeft <= 0) {
+    alert("またおさんぽにいくわん！");
+  }
 }
 
-function removeMatches() {
-  const matches = findMatches();
-  if (matches.length === 0) return;
-
-  matches.forEach(cell => {
-    const r = parseInt(cell.dataset.row);
-    const c = parseInt(cell.dataset.col);
-    for (let i = r; i > 0; i--) {
-      board[i][c].dataset.type = board[i - 1][c].dataset.type;
-      board[i][c].querySelector("img").src = `img/${dogTypes[board[i][c].dataset.type]}.png`;
+function collapseBoard() {
+  for (let col = 0; col < numCols; col++) {
+    for (let row = numRows - 1; row >= 0; row--) {
+      if (!board[row][col]) {
+        for (let r = row - 1; r >= 0; r--) {
+          if (board[r][col]) {
+            board[row][col] = board[r][col];
+            board[r][col] = null;
+            break;
+          }
+        }
+      }
     }
-    const newType = getRandomType();
-    board[0][c].dataset.type = newType;
-    board[0][c].querySelector("img").src = `img/${dogTypes[newType]}.png`;
-  });
+  }
+}
 
-  score += matches.length;
+function refillBoard() {
+  for (let row = 0; row < numRows; row++) {
+    for (let col = 0; col < numCols; col++) {
+      if (!board[row][col]) {
+        board[row][col] = dogTypes[Math.floor(Math.random() * dogTypes.length)];
+      }
+    }
+  }
+}
+
+function updateStatus() {
   document.getElementById("score").textContent = score;
-  setTimeout(removeMatches, 200);
+  document.getElementById("moves").textContent = movesLeft;
 }
 
-window.onload = createBoard;
+document.getElementById("start-button").addEventListener("click", createBoard);
+window.onload = () => {
+  document.getElementById("start-button").style.display = "block";
+};
