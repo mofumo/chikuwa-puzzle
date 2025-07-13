@@ -6,137 +6,143 @@ const dogTypes = [
   'dog_shiba',
   'dog_schnauzer'
 ];
-
 let board = [];
-let selected = null;
 
-function createBoard() {
+const boardElement = document.getElementById("board");
+boardElement.style.gridTemplateColumns = `repeat(${boardSize}, 1fr)`;
+
+// アイコンをランダムに生成
+function getRandomDog() {
+  return dogTypes[Math.floor(Math.random() * dogTypes.length)];
+}
+
+// 盤面の初期化
+function initBoard() {
   board = [];
-  for (let y = 0; y < boardSize; y++) {
-    let row = [];
-    for (let x = 0; x < boardSize; x++) {
-      row.push(dogTypes[Math.floor(Math.random() * dogTypes.length)]);
-    }
-    board.push(row);
-  }
-}
-
-function drawBoard() {
-  const boardDiv = document.getElementById("board");
-  boardDiv.innerHTML = "";
-  for (let y = 0; y < boardSize; y++) {
-    for (let x = 0; x < boardSize; x++) {
-      const div = document.createElement("div");
-      div.className = "tile";
-
+  boardElement.innerHTML = "";
+  for (let row = 0; row < boardSize; row++) {
+    const rowArray = [];
+    for (let col = 0; col < boardSize; col++) {
+      const dog = getRandomDog();
+      rowArray.push(dog);
+      const cell = document.createElement("div");
+      cell.className = "cell";
       const img = document.createElement("img");
-      img.src = `img/${board[y][x]}.png`;
-      img.alt = board[y][x];
+      img.src = `img/${dog}.png`;
+      img.alt = dog;
       img.className = "dog-icon";
-
-      div.appendChild(img);
-      div.addEventListener("click", () => handleClick(x, y));
-      boardDiv.appendChild(div);
+      cell.appendChild(img);
+      cell.dataset.row = row;
+      cell.dataset.col = col;
+      boardElement.appendChild(cell);
     }
+    board.push(rowArray);
   }
 }
 
-function handleClick(x, y) {
-  if (!selected) {
-    selected = { x, y };
-  } else {
-    const dx = Math.abs(selected.x - x);
-    const dy = Math.abs(selected.y - y);
-    if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
-      [board[y][x], board[selected.y][selected.x]] = [board[selected.y][selected.x], board[y][x]];
-      if (checkMatches()) {
-        removeMatches();
-      } else {
-        // 元に戻す
-        [board[y][x], board[selected.y][selected.x]] = [board[selected.y][selected.x], board[y][x]];
-      }
-    }
-    selected = null;
-    drawBoard();
-  }
+// マッチしているか確認
+function checkMatch(row, col) {
+  const current = board[row][col];
+  if (!current) return false;
+
+  let horizontal = 1;
+  let vertical = 1;
+
+  // 横方向
+  for (let i = col - 1; i >= 0 && board[row][i] === current; i--) horizontal++;
+  for (let i = col + 1; i < boardSize && board[row][i] === current; i++) horizontal++;
+
+  // 縦方向
+  for (let i = row - 1; i >= 0 && board[i][col] === current; i--) vertical++;
+  for (let i = row + 1; i < boardSize && board[i][col] === current; i++) vertical++;
+
+  return horizontal >= 3 || vertical >= 3;
 }
 
-function checkMatches() {
-  for (let y = 0; y < boardSize; y++) {
-    for (let x = 0; x < boardSize - 2; x++) {
-      if (board[y][x] === board[y][x + 1] && board[y][x] === board[y][x + 2]) {
-        return true;
-      }
-    }
-  }
-  for (let x = 0; x < boardSize; x++) {
-    for (let y = 0; y < boardSize - 2; y++) {
-      if (board[y][x] === board[y + 1][x] && board[y][x] === board[y + 2][x]) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
+// マッチしたピースを消す
 function removeMatches() {
-  let matched = Array.from({ length: boardSize }, () => Array(boardSize).fill(false));
-
-  for (let y = 0; y < boardSize; y++) {
-    for (let x = 0; x < boardSize - 2; x++) {
-      if (board[y][x] === board[y][x + 1] && board[y][x] === board[y][x + 2]) {
-        matched[y][x] = matched[y][x + 1] = matched[y][x + 2] = true;
-      }
-    }
-  }
-  for (let x = 0; x < boardSize; x++) {
-    for (let y = 0; y < boardSize - 2; y++) {
-      if (board[y][x] === board[y + 1][x] && board[y][x] === board[y + 2][x]) {
-        matched[y][x] = matched[y + 1][x] = matched[y + 2][x] = true;
+  const toRemove = [];
+  for (let row = 0; row < boardSize; row++) {
+    for (let col = 0; col < boardSize; col++) {
+      if (checkMatch(row, col)) {
+        toRemove.push([row, col]);
       }
     }
   }
 
-  for (let y = 0; y < boardSize; y++) {
-    for (let x = 0; x < boardSize; x++) {
-      if (matched[y][x]) {
-        board[y][x] = null;
-      }
-    }
-  }
+  toRemove.forEach(([row, col]) => {
+    board[row][col] = null;
+  });
 
-  dropTiles();
-  fillTiles();
-  drawBoard();
+  return toRemove.length > 0;
 }
 
-function dropTiles() {
-  for (let x = 0; x < boardSize; x++) {
-    let emptySpots = 0;
-    for (let y = boardSize - 1; y >= 0; y--) {
-      if (board[y][x] === null) {
-        emptySpots++;
-      } else if (emptySpots > 0) {
-        board[y + emptySpots][x] = board[y][x];
-        board[y][x] = null;
+// 落下処理
+function dropDogs() {
+  for (let col = 0; col < boardSize; col++) {
+    for (let row = boardSize - 1; row >= 0; row--) {
+      if (board[row][col] === null) {
+        for (let r = row - 1; r >= 0; r--) {
+          if (board[r][col] !== null) {
+            board[row][col] = board[r][col];
+            board[r][col] = null;
+            break;
+          }
+        }
       }
     }
   }
-}
 
-function fillTiles() {
-  for (let y = 0; y < boardSize; y++) {
-    for (let x = 0; x < boardSize; x++) {
-      if (board[y][x] === null) {
-        board[y][x] = dogTypes[Math.floor(Math.random() * dogTypes.length)];
+  // 新しい犬を上から補充
+  for (let col = 0; col < boardSize; col++) {
+    for (let row = 0; row < boardSize; row++) {
+      if (board[row][col] === null) {
+        board[row][col] = getRandomDog();
       }
     }
   }
 }
 
-function startGame() {
-  createBoard();
-  drawBoard();
+// 再描画
+function renderBoard() {
+  boardElement.innerHTML = "";
+  for (let row = 0; row < boardSize; row++) {
+    for (let col = 0; col < boardSize; col++) {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      const img = document.createElement("img");
+      img.src = `img/${board[row][col]}.png`;
+      img.alt = board[row][col];
+      img.className = "dog-icon";
+      cell.appendChild(img);
+      boardElement.appendChild(cell);
+    }
+  }
 }
 
-window.onload = startGame;
+// クリックで連鎖処理
+function handleClick() {
+  if (removeMatches()) {
+    renderBoard();
+    setTimeout(() => {
+      dropDogs();
+      renderBoard();
+      setTimeout(() => {
+        handleClick(); // 再帰で連鎖処理
+      }, 300);
+    }, 300);
+  }
+}
+
+document.getElementById("shuffle").addEventListener("click", () => {
+  initBoard();
+  renderBoard();
+});
+
+document.getElementById("match").addEventListener("click", () => {
+  handleClick();
+});
+
+// 最初の初期化
+initBoard();
+renderBoard();
