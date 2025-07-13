@@ -9,6 +9,13 @@ const dogTypes = [
     'dog_schnauzer'
 ];
 
+let score = 0;
+
+function updateScore(points) {
+  score += points;
+  document.getElementById('score').textContent = `スコア：${score}`;
+}
+
 function createBoard() {
     const boardElem = document.getElementById("board");
     boardElem.innerHTML = "";
@@ -99,10 +106,13 @@ function findMatches() {
 
 function checkMatches() {
     const matches = findMatches();
-    if (matches.length === 0) return;
-    for (const [row, col] of matches) {
-        board[row][col] = null;
-    }
+    if (matched.length >= 3) {
+  matched.forEach(el => {
+    const [r, c] = el;
+    board[r][c] = null;
+  });
+  updateScore(matched.length * 10);  // ★ マッチ数 × 10点
+}
     collapse();
     setTimeout(() => {
         refill();
