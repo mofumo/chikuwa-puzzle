@@ -21,11 +21,8 @@ body {
   outline: 2px solid red;
 }
 .tile {
-  width: 48px;
-  height: 48px;
-  border: 1px solid #ccc;
-  box-sizing: border-box;
-  overflow: hidden;
+  width: 60px;
+  height: 60px;
 }
 .dog-icon {
   width: 100%;
