@@ -1,157 +1,130 @@
 const boardSize = 8;
-const dogTypes = [
-  'dog_chihuahua',
-  'dog_poodle',
-  'dog_schnauzer',
-  'dog_shiba',
-  'dog_shih_tzu'
-];
-
+const tileTypes = ["shih-tzu", "shiba", "toypoodle", "chihuahua", "pekingese", "schnauzer"];
 let board = [];
-let firstSelected = null;
 let score = 0;
+let movesLeft = 30;
 
-const boardElement = document.getElementById('board');
-const scoreElement = document.getElementById('score');
-
-function createDogElement(type) {
-  const img = document.createElement('img');
-  img.src = `img/${type}.png`;
-  img.classList.add('dog');
-  img.dataset.type = type;
-  return img;
-}
-
-function initBoard() {
-  boardElement.innerHTML = '';
-  board = [];
-
-  for (let i = 0; i < boardSize; i++) {
-    const row = [];
-    for (let j = 0; j < boardSize; j++) {
-      const type = dogTypes[Math.floor(Math.random() * dogTypes.length)];
-      const dog = createDogElement(type);
-      dog.dataset.row = i;
-      dog.dataset.col = j;
-      dog.addEventListener('click', handleDogClick);
-      boardElement.appendChild(dog);
-      row.push(dog);
-    }
-    board.push(row);
-  }
-
-  score = 0;
-  updateScore();
-  checkMatches();
-}
-
-function updateScore() {
-  scoreElement.textContent = `スコア：${score}`;
-}
-
-function handleDogClick(e) {
-  const clicked = e.target;
-  if (!firstSelected) {
-    firstSelected = clicked;
-    clicked.classList.add('selected');
-  } else {
-    const row1 = parseInt(firstSelected.dataset.row);
-    const col1 = parseInt(firstSelected.dataset.col);
-    const row2 = parseInt(clicked.dataset.row);
-    const col2 = parseInt(clicked.dataset.col);
-
-    const isAdjacent = Math.abs(row1 - row2) + Math.abs(col1 - col2) === 1;
-
-    if (isAdjacent) {
-      swapDogs(firstSelected, clicked);
-      setTimeout(() => {
-        if (!checkMatches()) {
-          swapDogs(firstSelected, clicked); // 戻す
+function initGame() {
+    board = [];
+    score = 0;
+    movesLeft = 30;
+    document.getElementById("score").textContent = score;
+    document.getElementById("moves").textContent = movesLeft;
+    document.getElementById("message").textContent = "";
+    document.getElementById("board").innerHTML = "";
+    for (let row = 0; row < boardSize; row++) {
+        board[row] = [];
+        for (let col = 0; col < boardSize; col++) {
+            let type = tileTypes[Math.floor(Math.random() * tileTypes.length)];
+            board[row][col] = type;
+            drawTile(row, col, type);
         }
-        firstSelected.classList.remove('selected');
-        firstSelected = null;
-      }, 100);
-    } else {
-      firstSelected.classList.remove('selected');
-      firstSelected = null;
     }
-  }
+    checkMatches();
 }
 
-function swapDogs(dog1, dog2) {
-  const row1 = dog1.dataset.row;
-  const col1 = dog1.dataset.col;
-  const row2 = dog2.dataset.row;
-  const col2 = dog2.dataset.col;
+function drawTile(row, col, type) {
+    const tile = document.createElement("div");
+    tile.className = `tile ${type}`;
+    tile.dataset.row = row;
+    tile.dataset.col = col;
+    tile.addEventListener("click", handleTileClick);
+    document.getElementById("board").appendChild(tile);
+}
 
-  const temp = board[row1][col1];
-  board[row1][col1] = board[row2][col2];
-  board[row2][col2] = temp;
+let firstTile = null;
 
-  board[row1][col1].dataset.row = row1;
-  board[row1][col1].dataset.col = col1;
-  board[row2][col2].dataset.row = row2;
-  board[row2][col2].dataset.col = col2;
+function handleTileClick(e) {
+    if (movesLeft <= 0) return;
+    const tile = e.target;
+    const row = parseInt(tile.dataset.row);
+    const col = parseInt(tile.dataset.col);
 
-  boardElement.innerHTML = '';
-  board.flat().forEach(dog => boardElement.appendChild(dog));
+    if (!firstTile) {
+        firstTile = { row, col };
+        tile.classList.add("selected");
+    } else {
+        const secondTile = { row, col };
+        if (isAdjacent(firstTile, secondTile)) {
+            swapTiles(firstTile, secondTile);
+            if (checkMatches()) {
+                movesLeft--;
+                document.getElementById("moves").textContent = movesLeft;
+            } else {
+                swapTiles(firstTile, secondTile); // 戻す
+            }
+        }
+        clearSelection();
+    }
+}
+
+function isAdjacent(tile1, tile2) {
+    const dx = Math.abs(tile1.row - tile2.row);
+    const dy = Math.abs(tile1.col - tile2.col);
+    return (dx + dy === 1);
+}
+
+function swapTiles(tile1, tile2) {
+    const temp = board[tile1.row][tile1.col];
+    board[tile1.row][tile1.col] = board[tile2.row][tile2.col];
+    board[tile2.row][tile2.col] = temp;
+    updateBoard();
+}
+
+function updateBoard() {
+    const boardDiv = document.getElementById("board");
+    boardDiv.innerHTML = "";
+    for (let row = 0; row < boardSize; row++) {
+        for (let col = 0; col < boardSize; col++) {
+            drawTile(row, col, board[row][col]);
+        }
+    }
+}
+
+function clearSelection() {
+    const tiles = document.querySelectorAll(".tile");
+    tiles.forEach(tile => tile.classList.remove("selected"));
+    firstTile = null;
 }
 
 function checkMatches() {
-  let matched = [];
-
-  // 横方向
-  for (let i = 0; i < boardSize; i++) {
-    for (let j = 0; j < boardSize - 2; j++) {
-      const type = board[i][j].dataset.type;
-      if (
-        type === board[i][j + 1].dataset.type &&
-        type === board[i][j + 2].dataset.type
-      ) {
-        matched.push(board[i][j], board[i][j + 1], board[i][j + 2]);
-      }
+    let matched = [];
+    // 横方向チェック
+    for (let row = 0; row < boardSize; row++) {
+        for (let col = 0; col < boardSize - 2; col++) {
+            const type = board[row][col];
+            if (type === board[row][col + 1] && type === board[row][col + 2]) {
+                matched.push([row, col], [row, col + 1], [row, col + 2]);
+            }
+        }
     }
-  }
 
-  // 縦方向
-  for (let j = 0; j < boardSize; j++) {
-    for (let i = 0; i < boardSize - 2; i++) {
-      const type = board[i][j].dataset.type;
-      if (
-        type === board[i + 1][j].dataset.type &&
-        type === board[i + 2][j].dataset.type
-      ) {
-        matched.push(board[i][j], board[i + 1][j], board[i + 2][j]);
-      }
+    // 縦方向チェック
+    for (let col = 0; col < boardSize; col++) {
+        for (let row = 0; row < boardSize - 2; row++) {
+            const type = board[row][col];
+            if (type === board[row + 1][col] && type === board[row + 2][col]) {
+                matched.push([row, col], [row + 1, col], [row + 2, col]);
+            }
+        }
     }
-  }
 
-  if (matched.length === 0) return false;
-
-  matched = [...new Set(matched)];
-
-  matched.forEach(dog => {
-    const row = parseInt(dog.dataset.row);
-    const col = parseInt(dog.dataset.col);
-    const newType = dogTypes[Math.floor(Math.random() * dogTypes.length)];
-    const newDog = createDogElement(newType);
-    newDog.dataset.row = row;
-    newDog.dataset.col = col;
-    newDog.addEventListener('click', handleDogClick);
-    board[row][col] = newDog;
-  });
-
-  boardElement.innerHTML = '';
-  board.flat().forEach(dog => boardElement.appendChild(dog));
-
-  score += matched.length * 10;
-  updateScore();
-
-  setTimeout(checkMatches, 300);
-
-  return true;
+    if (matched.length > 0) {
+        removeMatches(matched);
+        return true;
+    }
+    return false;
 }
 
-document.getElementById('resetButton').addEventListener('click', initBoard);
+function removeMatches(matched) {
+    matched.forEach(([row, col]) => {
+        board[row][col] = tileTypes[Math.floor(Math.random() * tileTypes.length)];
+        score += 10;
+    });
+    document.getElementById("score").textContent = score;
+    updateBoard();
+}
 
-window.onload = initBoard;
+document.getElementById("reset").addEventListener("click", initGame);
+
+initGame();
