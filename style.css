@@ -6,10 +6,8 @@ body {
 }
 #board {
   display: grid;
-  grid-template-columns: repeat(8, 48px);
-  gap: 2px;
-  margin: 20px auto;
-  width: max-content;
+  grid-template-columns: repeat(8, 60px); /* ← 6から8に変更！ */
+  gap: 4px;
 }
 .cell {
   width: 48px;
